@@ -1,0 +1,46 @@
+# -------------- COUCHE OS -------------------
+FROM debian:stable-slim
+
+# --------------  MÉTADONNÉES -------------------
+LABEL version="1.0" maintainer="toto"
+
+
+# -------------- VARIABLES TEMPORAIRES --------------
+ARG APT_FLAGS="-q -y"
+ARG DOCUMENTROOT="/var/www/html"
+
+
+# --------------- COUCHE APACHE ---------------
+RUN apt-get update -y && \
+    apt-get install ${APT_FLAGS} apache2
+
+
+
+# --------------- COUCHE MYSQL ----------------
+RUN apt-get install ${APT_FLAGS} mariadb-server
+
+COPY db/articles.sql /
+
+
+
+# --------------- COUCHE PHP ------------------
+RUN apt-get install ${APT_FLAGS} \
+    php-mysql \
+    php && \
+    rm -f ${DOCUMENTROOT}/index.html && \
+    apt-get autoclean -y
+
+COPY app ${DOCUMENTROOT}
+
+
+
+# --------------- OUVERTURE DU PORT HTTP ------------------
+EXPOSE 80
+
+
+# --------------- RÉPERTOIRE DE TRAVAIL ------------------
+WORKDIR  ${DOCUMENTROOT}
+
+
+# --------------- DÉMARRAGE DES SERVICES LORS DE L'EXÉCUTION DE L'IMAGE ------------------
+ENTRYPOINT service mysql start && mysql < /articles.sql && apache2ctl -D FOREGROUND
